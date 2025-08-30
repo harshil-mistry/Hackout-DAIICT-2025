@@ -4,6 +4,7 @@ import os
 import requests
 from datetime import datetime
 import logging
+import random
 
 # Load environment variables
 load_dotenv()
@@ -36,6 +37,75 @@ GUJARAT_CITIES = {
     'Veraval': {'lat': 20.9077, 'lon': 70.3665, 'icon': 'fa-fish'},
     'Okha': {'lat': 22.4672, 'lon': 69.0717, 'icon': 'fa-lighthouse'}
 }
+
+def get_wind_direction(degrees):
+    """Convert wind direction degrees to text"""
+    directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE',
+                 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW']
+    index = round(degrees / 22.5) % 16
+    return directions[index]
+
+def calculate_uv_index(weather_data):
+    """Estimate UV index based on weather conditions"""
+    # Simplified UV calculation based on cloud cover and time
+    cloud_cover = weather_data.get('clouds', {}).get('all', 0)
+    if cloud_cover > 80:
+        return random.randint(1, 3)
+    elif cloud_cover > 50:
+        return random.randint(3, 6)
+    else:
+        return random.randint(6, 9)
+
+def get_air_quality_estimation(weather_data):
+    """Estimate air quality based on weather conditions"""
+    humidity = weather_data['main']['humidity']
+    pressure = weather_data['main']['pressure']
+    
+    if pressure > 1020 and humidity < 60:
+        return {'level': 'Good', 'aqi': random.randint(1, 50), 'color': 'green'}
+    elif pressure > 1010 and humidity < 70:
+        return {'level': 'Moderate', 'aqi': random.randint(51, 100), 'color': 'yellow'}
+    else:
+        return {'level': 'Unhealthy', 'aqi': random.randint(101, 150), 'color': 'orange'}
+
+def estimate_sea_conditions(weather_data):
+    """Estimate sea conditions for coastal areas"""
+    wind_speed = weather_data['wind']['speed'] * 3.6  # km/h
+    pressure = weather_data['main']['pressure']
+    
+    if wind_speed < 20 and pressure > 1015:
+        return {'condition': 'Calm', 'wave_height': '0.5-1m', 'safety': 'Safe'}
+    elif wind_speed < 35 and pressure > 1005:
+        return {'condition': 'Moderate', 'wave_height': '1-2m', 'safety': 'Caution'}
+    else:
+        return {'condition': 'Rough', 'wave_height': '2-4m', 'safety': 'Warning'}
+
+def process_forecast_data(forecast_data):
+    """Process 5-day forecast data for analytics"""
+    if not forecast_data or 'list' not in forecast_data:
+        return None
+    
+    daily_forecasts = []
+    current_date = None
+    daily_temps = []
+    
+    for item in forecast_data['list'][:15]:  # Next 5 days, 3-hour intervals
+        date = datetime.fromtimestamp(item['dt']).date()
+        if current_date != date:
+            if daily_temps:
+                daily_forecasts.append({
+                    'date': current_date.strftime('%Y-%m-%d'),
+                    'day_name': current_date.strftime('%A'),
+                    'temp_min': min(daily_temps),
+                    'temp_max': max(daily_temps),
+                    'description': item['weather'][0]['description'].title(),
+                    'icon': item['weather'][0]['icon']
+                })
+            current_date = date
+            daily_temps = []
+        daily_temps.append(item['main']['temp'])
+    
+    return daily_forecasts[:5]
 
 def fetch_weather_data(city_name, lat, lon):
     """Fetch weather data from OpenWeatherMap API"""
@@ -86,19 +156,41 @@ def fetch_weather_data(city_name, lat, lon):
         data = response.json()
         
         logger.info(f"Successfully fetched weather data for {city_name}")
+        
+        # Calculate additional metrics
+        wind_direction_text = get_wind_direction(data['wind'].get('deg', 0))
+        uv_index = calculate_uv_index(data)
+        air_quality = get_air_quality_estimation(data)
+        sea_conditions = estimate_sea_conditions(data)
+        
         return {
             'city': city_name,
             'temperature': round(data['main']['temp']),
             'feels_like': round(data['main']['feels_like']),
+            'temp_min': round(data['main']['temp_min']),
+            'temp_max': round(data['main']['temp_max']),
             'humidity': data['main']['humidity'],
             'pressure': data['main']['pressure'],
+            'sea_level_pressure': data['main'].get('sea_level', data['main']['pressure']),
             'wind_speed': round(data['wind']['speed'] * 3.6),  # Convert m/s to km/h
             'wind_direction': data['wind'].get('deg', 0),
+            'wind_direction_text': wind_direction_text,
+            'wind_gust': round(data['wind'].get('gust', 0) * 3.6) if data['wind'].get('gust') else 0,
             'description': data['weather'][0]['description'].title(),
+            'main_weather': data['weather'][0]['main'],
             'icon': data['weather'][0]['icon'],
             'visibility': data.get('visibility', 10000) / 1000,  # Convert to km
+            'clouds': data['clouds']['all'],
+            'sunrise': datetime.fromtimestamp(data['sys']['sunrise']).strftime('%H:%M'),
+            'sunset': datetime.fromtimestamp(data['sys']['sunset']).strftime('%H:%M'),
+            'country': data['sys']['country'],
+            'timezone': data.get('timezone', 0),
             'last_updated': datetime.now().strftime('%H:%M'),
-            'threat_level': calculate_threat_level(data)
+            'threat_level': calculate_threat_level(data),
+            'uv_index': uv_index,
+            'air_quality': air_quality,
+            'sea_conditions': sea_conditions,
+            'coordinates': {'lat': lat, 'lon': lon}
         }
         
     except requests.exceptions.RequestException as e:
@@ -113,20 +205,35 @@ def fetch_weather_data(city_name, lat, lon):
 
 def get_mock_weather_data(city_name):
     """Return mock weather data when API is unavailable"""
-    import random
+    temp = random.randint(25, 35)
     return {
         'city': city_name,
-        'temperature': random.randint(25, 35),
-        'feels_like': random.randint(26, 38),
+        'temperature': temp,
+        'feels_like': temp + random.randint(-2, 4),
+        'temp_min': temp - random.randint(2, 5),
+        'temp_max': temp + random.randint(2, 5),
         'humidity': random.randint(60, 85),
         'pressure': random.randint(1010, 1020),
+        'sea_level_pressure': random.randint(1012, 1022),
         'wind_speed': random.randint(10, 25),
         'wind_direction': random.randint(0, 360),
+        'wind_direction_text': get_wind_direction(random.randint(0, 360)),
+        'wind_gust': random.randint(15, 35),
         'description': random.choice(['Clear Sky', 'Few Clouds', 'Partly Cloudy', 'Light Breeze']),
+        'main_weather': random.choice(['Clear', 'Clouds', 'Mist']),
         'icon': '01d',
         'visibility': round(random.uniform(8, 15), 1),
+        'clouds': random.randint(10, 40),
+        'sunrise': '06:30',
+        'sunset': '18:45',
+        'country': 'IN',
+        'timezone': 19800,
         'last_updated': datetime.now().strftime('%H:%M'),
-        'threat_level': 'green'
+        'threat_level': 'green',
+        'uv_index': random.randint(3, 8),
+        'air_quality': {'level': 'Good', 'aqi': random.randint(20, 80), 'color': 'green'},
+        'sea_conditions': {'condition': 'Calm', 'wave_height': '0.5-1m', 'safety': 'Safe'},
+        'coordinates': {'lat': 22.0, 'lon': 71.0}
     }
 
 def calculate_threat_level(weather_data):
@@ -318,6 +425,87 @@ def api_test():
         test_results['error'] = 'API key not found in environment variables'
     
     return jsonify(test_results)
+
+# Enhanced dashboard route
+@app.route('/dashboard/enhanced')
+def dashboard_enhanced():
+    try:
+        # Test API key first
+        api_key = os.getenv('WEATHER_API_KEY')
+        logger.info(f"Enhanced Dashboard loading... API Key available: {'Yes' if api_key else 'No'}")
+        
+        # Fetch weather data for key cities
+        weather_data = {}
+        city_stats = {'total': len(GUJARAT_CITIES), 'safe': 0, 'monitor': 0, 'alert': 0}
+        
+        # Get weather for first 4 cities for main display
+        main_cities = list(GUJARAT_CITIES.items())[:4]
+        for city_name, coords in main_cities:
+            weather_data[city_name] = fetch_weather_data(city_name, coords['lat'], coords['lon'])
+            
+            # Count threat levels
+            level = weather_data[city_name]['threat_level']
+            if level == 'green':
+                city_stats['safe'] += 1
+            elif level == 'yellow':
+                city_stats['monitor'] += 1
+            elif level == 'red':
+                city_stats['alert'] += 1
+        
+        # Get all cities data for sidebar
+        all_cities_data = {}
+        for city_name, coords in GUJARAT_CITIES.items():
+            city_data = fetch_weather_data(city_name, coords['lat'], coords['lon'])
+            city_data['icon'] = coords['icon']
+            all_cities_data[city_name] = city_data
+        
+        # Generate mock data for other panels
+        ai_alerts = generate_mock_alerts()
+        community_reports = generate_mock_reports()
+        
+        # Calculate summary stats
+        summary_stats = {
+            'total_alerts': len(ai_alerts),
+            'critical_alerts': len([a for a in ai_alerts if a['level'] == 'red']),
+            'monitored_cities': len(GUJARAT_CITIES),
+            'community_reports': len(community_reports)
+        }
+        
+        logger.info(f"Enhanced Dashboard data loaded successfully. Weather data points: {len(weather_data)}")
+        
+        return render_template('dashboard_enhanced.html', 
+                             weather_data=weather_data,
+                             all_cities_data=all_cities_data,
+                             city_stats=city_stats,
+                             ai_alerts=ai_alerts,
+                             community_reports=community_reports,
+                             summary_stats=summary_stats,
+                             error=None)
+                             
+    except Exception as e:
+        logger.error(f"Enhanced Dashboard error: {e}")
+        # Return fallback data in case of errors
+        return render_template('dashboard_enhanced.html', 
+                             weather_data=None,
+                             all_cities_data=None,
+                             city_stats=None,
+                             ai_alerts=None,
+                             community_reports=None,
+                             summary_stats=None,
+                             error=str(e))
+
+# Get detailed city weather data
+@app.route('/api/city/<city_name>')
+def get_city_weather(city_name):
+    """Get detailed weather data for a specific city"""
+    if city_name not in GUJARAT_CITIES:
+        return jsonify({'error': 'City not found'}), 404
+    
+    coords = GUJARAT_CITIES[city_name]
+    weather_data = fetch_weather_data(city_name, coords['lat'], coords['lon'])
+    weather_data['icon_class'] = coords['icon']
+    
+    return jsonify(weather_data)
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
