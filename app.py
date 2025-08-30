@@ -122,6 +122,7 @@ def fetch_weather_data(city_name, lat, lon):
     
     if not api_key or api_key.strip() == '' or api_key == 'your-openweathermap-api-key':
         logger.warning("Weather API key not configured properly")
+        print(f"🔧 DEBUG: Using STATIC DEMO weather data for {city_name} (API key not configured)")
         return get_mock_weather_data(city_name)
     
     try:
@@ -140,6 +141,7 @@ def fetch_weather_data(city_name, lat, lon):
         data = response.json()
         
         logger.info(f"Successfully fetched weather data for {city_name}")
+        print(f"✅ DEBUG: Using REAL weather data for {city_name} from OpenWeatherMap API")
         
         # Calculate additional metrics
         wind_direction_text = get_wind_direction(data['wind'].get('deg', 0))
@@ -189,6 +191,7 @@ def fetch_weather_data(city_name, lat, lon):
 
 def get_mock_weather_data(city_name):
     """Return mock weather data when API is unavailable"""
+    print(f"🔧 DEBUG: Generating STATIC DEMO weather data for {city_name}")
     temp = random.randint(25, 35)
     return {
         'city': city_name,
@@ -298,6 +301,8 @@ def analyze_coastal_threat():
     Fetches weather data for critical locations and analyzes threats
     """
     try:
+        print(f"🧠 DEBUG: Starting AI coastal threat analysis...")
+        
         # Define critical coastal locations for analysis
         critical_locations = [
             'Dwarka',  # Important religious and coastal city
@@ -338,7 +343,10 @@ def call_gemini_api(weather_data):
     try:
         if not GEMINI_API_KEY:
             logger.warning("Gemini API key not available, using fallback analysis")
+            print(f"🔧 DEBUG: Using STATIC DEMO AI analysis (Gemini API key not configured)")
             return get_fallback_analysis()
+        
+        print(f"✅ DEBUG: Using REAL Gemini AI analysis (API key configured)")
         
         # Create detailed prompt for Gemini
         prompt = create_analysis_prompt(weather_data)
@@ -353,6 +361,7 @@ def call_gemini_api(weather_data):
         analysis_result = parse_gemini_response(response.text)
         
         logger.info("Successfully generated AI coastal threat analysis")
+        print(f"✅ DEBUG: Gemini AI analysis completed successfully")
         return analysis_result
         
     except Exception as e:
@@ -437,6 +446,7 @@ def get_fallback_analysis():
     """
     Provide fallback analysis when AI is unavailable
     """
+    print(f"🔧 DEBUG: Generating STATIC DEMO fallback analysis (AI unavailable)")
     return {
         "alert_level": "green",
         "overall_threat_score": 3,
@@ -466,12 +476,107 @@ def index():
     return render_template('index.html')
 
 # Official dashboard route with real weather data
+@app.route('/api/debug-status')
+def debug_status():
+    """Debug endpoint to check API configuration status"""
+    weather_api_key = os.getenv('WEATHER_API_KEY')
+    gemini_api_key = os.getenv('GEMINI_API_KEY')
+    
+    status = {
+        'weather_api_configured': bool(weather_api_key and weather_api_key != 'your-openweathermap-api-key'),
+        'gemini_api_configured': bool(gemini_api_key and gemini_api_key != 'your_google_gemini_api_key_here'),
+        'data_sources': {
+            'weather': 'REAL API' if (weather_api_key and weather_api_key != 'your-openweathermap-api-key') else 'DEMO DATA',
+            'ai_analysis': 'REAL AI' if (gemini_api_key and gemini_api_key != 'your_google_gemini_api_key_here') else 'DEMO DATA'
+        }
+    }
+    
+    print(f"🔍 DEBUG: API Status Check - Weather: {status['data_sources']['weather']}, AI: {status['data_sources']['ai_analysis']}")
+    
+    return jsonify(status)
+
+
+@app.route('/api/ai-analysis')
+def get_ai_analysis():
+    """
+    Asynchronous endpoint for fetching AI coastal threat analysis.
+    This endpoint is called via AJAX after the main dashboard loads.
+    """
+    print(f"🌐 DEBUG: AI Analysis API endpoint called - Processing async request...")
+    try:
+        logger.info("API: Starting asynchronous AI coastal threat analysis...")
+        
+        # Perform the actual AI analysis
+        ai_threat_analysis = analyze_coastal_threat()
+        
+        logger.info(f"API: AI Analysis completed - Alert Level: {ai_threat_analysis.get('alert_level', 'unknown')}")
+        
+        # Convert AI analysis to alert format for the dashboard
+        ai_alert = {
+            'title': f"AI Threat Assessment - {ai_threat_analysis.get('alert_level', 'unknown').upper()} Alert",
+            'description': ai_threat_analysis.get('reason', 'Analysis unavailable'),
+            'location': ', '.join(ai_threat_analysis.get('affected_areas', ['Gujarat Coast'])),
+            'time': ai_threat_analysis.get('last_updated', 'Unknown'),
+            'level': ai_threat_analysis.get('alert_level', 'green'),
+            'icon': 'fa-brain',
+            'priority': ai_threat_analysis.get('alert_level', 'green'),
+            'recommended_action': ai_threat_analysis.get('recommended_action', 'Monitor conditions'),
+            'threat_score': ai_threat_analysis.get('overall_threat_score', 3),
+            'risk_factors': ai_threat_analysis.get('risk_factors', {}),
+            'primary_concerns': ai_threat_analysis.get('primary_concerns', []),
+            'forecast_trend': ai_threat_analysis.get('forecast_trend', 'stable'),
+            'data_source': ai_threat_analysis.get('data_source', 'Gemini AI Analysis'),
+            'is_placeholder': False
+        }
+        
+        # Return both the alert and full analysis data
+        response_data = {
+            'success': True,
+            'ai_alert': ai_alert,
+            'ai_analysis': ai_threat_analysis,
+            'timestamp': ai_threat_analysis.get('last_updated', 'Unknown')
+        }
+        
+        return jsonify(response_data)
+        
+    except Exception as e:
+        logger.error(f"Error in AI analysis API: {e}")
+        
+        # Return error response with fallback data
+        fallback_analysis = get_fallback_analysis()
+        error_alert = {
+            'title': "AI Threat Assessment - Service Unavailable",
+            'description': f"AI analysis temporarily unavailable: {str(e)}",
+            'location': 'Gujarat Coast',
+            'time': 'Error occurred',
+            'level': 'yellow',
+            'icon': 'fa-exclamation-triangle',
+            'priority': 'yellow',
+            'recommended_action': 'Manual monitoring recommended',
+            'threat_score': 3,
+            'risk_factors': {},
+            'primary_concerns': ['AI service unavailable'],
+            'forecast_trend': 'unknown',
+            'data_source': 'Fallback Analysis',
+            'is_placeholder': False
+        }
+        
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'ai_alert': error_alert,
+            'ai_analysis': fallback_analysis
+        }), 500
+
+
 @app.route('/dashboard')
 def dashboard():
+    print(f"🌐 DEBUG: Dashboard route accessed - Loading page with placeholder AI data...")
     try:
         # Test API key first
         api_key = os.getenv('WEATHER_API_KEY')
         logger.info(f"Dashboard loading... API Key available: {'Yes' if api_key else 'No'}")
+        print(f"🔑 DEBUG: Weather API Key configured: {'Yes' if api_key and api_key != 'your-openweathermap-api-key' else 'No'}")
         
         # Fetch weather data for key cities
         weather_data = {}
@@ -498,29 +603,40 @@ def dashboard():
             city_data['icon'] = coords['icon']
             all_cities_data[city_name] = city_data
         
-        # CORE AI INTEGRATION: Analyze coastal threats using Gemini AI
-        logger.info("Starting AI coastal threat analysis...")
-        ai_threat_analysis = analyze_coastal_threat()
-        logger.info(f"AI Analysis completed - Alert Level: {ai_threat_analysis.get('alert_level', 'unknown')}")
-        
-        # Convert AI analysis to alert format for the dashboard
+        # Initialize placeholder AI alerts for immediate loading
         ai_alerts = [
             {
-                'title': f"AI Threat Assessment - {ai_threat_analysis.get('alert_level', 'unknown').upper()} Alert",
-                'description': ai_threat_analysis.get('reason', 'Analysis unavailable'),
-                'location': ', '.join(ai_threat_analysis.get('affected_areas', ['Gujarat Coast'])),
-                'time': ai_threat_analysis.get('last_updated', 'Unknown'),
-                'level': ai_threat_analysis.get('alert_level', 'green'),
-                'icon': 'fa-brain',
-                'priority': ai_threat_analysis.get('alert_level', 'green'),
-                'recommended_action': ai_threat_analysis.get('recommended_action', 'Monitor conditions'),
-                'threat_score': ai_threat_analysis.get('overall_threat_score', 3),
-                'risk_factors': ai_threat_analysis.get('risk_factors', {}),
-                'primary_concerns': ai_threat_analysis.get('primary_concerns', []),
-                'forecast_trend': ai_threat_analysis.get('forecast_trend', 'stable'),
-                'data_source': ai_threat_analysis.get('data_source', 'Gemini AI Analysis')
+                'title': "AI Threat Assessment - Loading...",
+                'description': "Analyzing coastal threat data using Gemini AI...",
+                'location': 'Gujarat Coast',
+                'time': 'Loading...',
+                'level': 'loading',
+                'icon': 'fa-spinner fa-spin',
+                'priority': 'loading',
+                'recommended_action': 'Loading analysis...',
+                'threat_score': 0,
+                'risk_factors': {},
+                'primary_concerns': [],
+                'forecast_trend': 'analyzing',
+                'data_source': 'Gemini AI Analysis (Loading)',
+                'is_placeholder': True
             }
         ]
+        
+        # Placeholder AI analysis object
+        ai_threat_analysis = {
+            'alert_level': 'loading',
+            'reason': 'AI analysis in progress...',
+            'affected_areas': ['Gujarat Coast'],
+            'last_updated': 'Loading...',
+            'recommended_action': 'Please wait while we analyze the data',
+            'overall_threat_score': 0,
+            'risk_factors': {},
+            'primary_concerns': ['Analysis in progress'],
+            'forecast_trend': 'analyzing',
+            'data_source': 'Gemini AI Analysis',
+            'is_placeholder': True
+        }
         
         # Add mock community reports
         community_reports = generate_mock_reports()
@@ -531,6 +647,13 @@ def dashboard():
         total_reports = len(community_reports)
         
         logger.info(f"Dashboard data loaded successfully. Weather data points: {len(weather_data)}, AI Analysis: {ai_threat_analysis.get('alert_level', 'unknown')}")
+        
+        print(f"📊 DEBUG: Dashboard template data summary:")
+        print(f"   - Weather data cities: {list(weather_data.keys())}")
+        print(f"   - All cities data: {len(all_cities_data)} cities")
+        print(f"   - AI alerts: {len(ai_alerts)} alert(s) with placeholder data")
+        print(f"   - Community reports: {len(community_reports)} mock reports")
+        print(f"   - AI analysis status: {ai_threat_analysis.get('alert_level', 'unknown')}")
         
         return render_template('dashboard.html', 
                              weather_data=weather_data,

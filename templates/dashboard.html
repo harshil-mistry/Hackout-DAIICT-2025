@@ -315,34 +315,50 @@
                 </div>
                 
                 <!-- Alert Cards -->
-                <div class="space-y-4">
+                <div class="space-y-4 ai-alerts-container">
                     {% if ai_alerts %}
                         {% for alert in ai_alerts %}
-                            <div class="border border-gray-200 rounded-lg p-4 
-                                {% if alert.level == 'red' %}bg-red-50 border-red-200{% elif alert.level == 'yellow' %}bg-yellow-50 border-yellow-200{% else %}bg-blue-50 border-blue-200{% endif %}">
+                            <div class="ai-alert-card border border-gray-200 rounded-lg p-4 
+                                {% if alert.level == 'red' %}bg-red-50 border-red-200{% elif alert.level == 'yellow' %}bg-yellow-50 border-yellow-200{% elif alert.level == 'loading' %}bg-blue-50 border-blue-200{% else %}bg-green-50 border-green-200{% endif %}">
                                 <div class="flex items-start justify-between">
                                     <div class="flex items-start">
                                         <div class="p-2 rounded-lg mr-3
-                                            {% if alert.level == 'red' %}bg-red-100{% elif alert.level == 'yellow' %}bg-yellow-100{% else %}bg-blue-100{% endif %}">
-                                            <i class="fas {{ alert.icon }} 
-                                                {% if alert.level == 'red' %}text-red-600{% elif alert.level == 'yellow' %}text-yellow-600{% else %}text-blue-600{% endif %}"></i>
+                                            {% if alert.level == 'red' %}bg-red-100{% elif alert.level == 'yellow' %}bg-yellow-100{% elif alert.level == 'loading' %}bg-blue-100{% else %}bg-green-100{% endif %}">
+                                            <i class="alert-icon fas {{ alert.icon }} 
+                                                {% if alert.level == 'red' %}text-red-600{% elif alert.level == 'yellow' %}text-yellow-600{% elif alert.level == 'loading' %}text-blue-600{% else %}text-green-600{% endif %}"></i>
                                         </div>
                                         <div>
-                                            <h4 class="font-semibold text-gray-900">{{ alert.title }}</h4>
-                                            <p class="text-sm text-gray-700 mt-1">{{ alert.description }}</p>
+                                            <h4 class="alert-title font-semibold text-gray-900">{{ alert.title }}</h4>
+                                            <p class="alert-description text-sm text-gray-700 mt-1">{{ alert.description }}</p>
                                             <div class="flex items-center mt-2 text-xs text-gray-500">
                                                 <i class="fas fa-map-marker-alt mr-1"></i>
-                                                <span>{{ alert.location }}</span>
+                                                <span class="alert-location">{{ alert.location }}</span>
                                                 <span class="mx-2">•</span>
                                                 <i class="fas fa-clock mr-1"></i>
-                                                <span>{{ alert.time }}</span>
+                                                <span class="alert-time">{{ alert.time }}</span>
                                             </div>
+                                            {% if alert.recommended_action %}
+                                            <div class="mt-2 text-xs text-gray-600">
+                                                <i class="fas fa-lightbulb mr-1"></i>
+                                                <span class="recommended-action">{{ alert.recommended_action }}</span>
+                                            </div>
+                                            {% endif %}
+                                            {% if alert.threat_score and alert.threat_score > 0 %}
+                                            <div class="mt-1 text-xs text-gray-600">
+                                                <span class="threat-score">Threat Score: {{ alert.threat_score }}/10</span>
+                                            </div>
+                                            {% endif %}
+                                            {% if alert.data_source %}
+                                            <div class="mt-1 text-xs text-gray-500">
+                                                <span class="data-source">{{ alert.data_source }}</span>
+                                            </div>
+                                            {% endif %}
                                         </div>
                                     </div>
                                     <div class="text-right">
                                         <span class="inline-block px-2 py-1 rounded-full text-xs font-medium
-                                            {% if alert.level == 'red' %}bg-red-100 text-red-800{% elif alert.level == 'yellow' %}bg-yellow-100 text-yellow-800{% else %}bg-blue-100 text-blue-800{% endif %}">
-                                            {{ alert.level|upper }}
+                                            {% if alert.level == 'red' %}bg-red-100 text-red-800{% elif alert.level == 'yellow' %}bg-yellow-100 text-yellow-800{% elif alert.level == 'loading' %}bg-blue-100 text-blue-800{% else %}bg-green-100 text-green-800{% endif %}">
+                                            {% if alert.level == 'loading' %}ANALYZING{% else %}{{ alert.level|upper }}{% endif %}
                                         </span>
                                     </div>
                                 </div>
@@ -817,6 +833,136 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initial timestamp update
     updateTimestamp();
+    
+    // ASYNC AI ANALYSIS LOADING
+    function loadAIAnalysis() {
+        console.log('🚀 DEBUG: Starting async AI analysis loading...');
+        console.log('📡 DEBUG: Making AJAX request to /api/ai-analysis');
+        
+        // Make AJAX request to get AI analysis
+        fetch('/api/ai-analysis')
+            .then(response => {
+                console.log('📡 DEBUG: Received response from AI analysis API');
+                return response.json();
+            })
+            .then(data => {
+                console.log('✅ DEBUG: AI Analysis data received:', data);
+                console.log('🔄 DEBUG: Updating dashboard with real AI data...');
+                updateAIAlertsDisplay(data);
+            })
+            .catch(error => {
+                console.error('❌ DEBUG: Error loading AI analysis:', error);
+                showAIErrorState(error);
+            });
+    }
+    
+    function updateAIAlertsDisplay(data) {
+        console.log('🔄 DEBUG: Updating AI alerts display with received data');
+        const aiAlertsContainer = document.querySelector('.ai-alerts-container');
+        if (!aiAlertsContainer) {
+            console.warn('⚠️ DEBUG: AI alerts container not found in DOM');
+            return;
+        }
+        
+        if (data.success && data.ai_alert) {
+            const alert = data.ai_alert;
+            console.log('✅ DEBUG: Successfully processing AI alert data:', alert.title);
+            
+            // Find the AI alert card and update it
+            const aiAlertCard = aiAlertsContainer.querySelector('.ai-alert-card');
+            if (aiAlertCard) {
+                console.log('🎯 DEBUG: Found AI alert card, updating elements...');
+                // Update title
+                const titleElement = aiAlertCard.querySelector('.alert-title');
+                if (titleElement) titleElement.textContent = alert.title;
+                
+                // Update description
+                const descElement = aiAlertCard.querySelector('.alert-description');
+                if (descElement) descElement.textContent = alert.description;
+                
+                // Update location
+                const locationElement = aiAlertCard.querySelector('.alert-location');
+                if (locationElement) locationElement.textContent = alert.location;
+                
+                // Update time
+                const timeElement = aiAlertCard.querySelector('.alert-time');
+                if (timeElement) timeElement.textContent = alert.time;
+                
+                // Update icon (remove spinner, add brain icon)
+                const iconElement = aiAlertCard.querySelector('.alert-icon');
+                if (iconElement) {
+                    iconElement.className = `fas ${alert.icon} mr-3 text-lg`;
+                }
+                
+                // Update alert level styling
+                updateAlertLevelStyling(aiAlertCard, alert.level);
+                
+                // Update additional data if elements exist
+                const actionElement = aiAlertCard.querySelector('.recommended-action');
+                if (actionElement) actionElement.textContent = alert.recommended_action;
+                
+                const scoreElement = aiAlertCard.querySelector('.threat-score');
+                if (scoreElement) scoreElement.textContent = `Threat Score: ${alert.threat_score}/10`;
+                
+                const sourceElement = aiAlertCard.querySelector('.data-source');
+                if (sourceElement) sourceElement.textContent = alert.data_source;
+                
+                console.log('✅ DEBUG: AI alert display updated successfully');
+            } else {
+                console.warn('⚠️ DEBUG: AI alert card not found in container');
+            }
+        } else {
+            console.warn('⚠️ DEBUG: Invalid AI analysis data received:', data);
+        }
+    }
+    
+    function updateAlertLevelStyling(alertCard, level) {
+        // Remove existing level classes
+        alertCard.classList.remove('border-red-200', 'bg-red-50', 'border-yellow-200', 'bg-yellow-50', 'border-green-200', 'bg-green-50', 'border-blue-200', 'bg-blue-50');
+        
+        // Add appropriate styling based on alert level
+        switch(level) {
+            case 'red':
+                alertCard.classList.add('border-red-200', 'bg-red-50');
+                break;
+            case 'yellow':
+                alertCard.classList.add('border-yellow-200', 'bg-yellow-50');
+                break;
+            case 'green':
+                alertCard.classList.add('border-green-200', 'bg-green-50');
+                break;
+            default:
+                alertCard.classList.add('border-blue-200', 'bg-blue-50');
+        }
+    }
+    
+    function showAIErrorState(error) {
+        console.log('❌ DEBUG: Showing AI error state due to:', error);
+        const aiAlertsContainer = document.querySelector('.ai-alerts-container');
+        if (!aiAlertsContainer) return;
+        
+        const aiAlertCard = aiAlertsContainer.querySelector('.ai-alert-card');
+        if (aiAlertCard) {
+            // Update to show error state
+            const titleElement = aiAlertCard.querySelector('.alert-title');
+            if (titleElement) titleElement.textContent = 'AI Analysis - Service Unavailable';
+            
+            const descElement = aiAlertCard.querySelector('.alert-description');
+            if (descElement) descElement.textContent = 'AI analysis temporarily unavailable. Please try refreshing the page.';
+            
+            const iconElement = aiAlertCard.querySelector('.alert-icon');
+            if (iconElement) {
+                iconElement.className = 'fas fa-exclamation-triangle mr-3 text-lg text-yellow-600';
+            }
+            
+            // Update styling to warning
+            updateAlertLevelStyling(aiAlertCard, 'yellow');
+        }
+    }
+    
+    // Start AI analysis loading after page is ready
+    console.log('⏰ DEBUG: Scheduling AI analysis to start in 1 second...');
+    setTimeout(loadAIAnalysis, 1000); // Small delay to ensure page is fully rendered
 });
 </script>
 {% endblock %}
