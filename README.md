@@ -45,6 +45,18 @@ This is the feeling of **foresight and control**. It's the confidence that comes
   <tr>
     <td><img src="https://github-production-user-asset-6210df.s3.amazonaws.com/125483347/483878752-383c2587-b8a6-4e0e-8f38-36cd7e14fdf6.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAVCODYLSA53PQK4ZA%2F20250830%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20250830T125351Z&X-Amz-Expires=300&X-Amz-Signature=dac460e681487eaec112666f9deb12d08bd1fcfce8c696b73acdff4a242a7445&X-Amz-SignedHeaders=host" alt="Authority Dashboard" width="100%"></td>
   </tr>
+  <tr>
+    <td align="center"><strong>Real-Time Data</strong></td>
+  </tr>
+  <tr>
+    <td><img src="https://github-production-user-asset-6210df.s3.amazonaws.com/125483347/483879363-221af3d4-1afe-47d2-b838-9579fc32a398.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAVCODYLSA53PQK4ZA%2F20250830%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20250830T130502Z&X-Amz-Expires=300&X-Amz-Signature=f43ce9a9b9f12f0a8ff52a8a106aebafa21a06d1aead3d35441d3104d7afaf2f&X-Amz-SignedHeaders=host" alt="Real-Time Data" width="100%"></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>Email and SMS Functionoality (Yet to be integrated) </strong></td>
+  </tr>
+  <tr>
+    <td><img src="https://github-production-user-asset-6210df.s3.amazonaws.com/125483347/483879535-ec70605a-da4c-4408-9343-959c227cf88b.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAVCODYLSA53PQK4ZA%2F20250830%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20250830T130640Z&X-Amz-Expires=300&X-Amz-Signature=d488ac27eeff14fb83c9820a3f24239fee88bf88707f1ef30864c9cac5750dbe&X-Amz-SignedHeaders=host" alt="Broadcase Message" width="100%"></td>
+  </tr>
 </table>
 
 ---
