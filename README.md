@@ -4,7 +4,7 @@
 
 CoastalGuard AI transforms real-time coastal data into actionable, life-saving insights. It's a proactive shield for our vulnerable coastlines, moving beyond simple data display to offer predictive analysis and a robust, multi-channel alerting system for authorities.
 
-![CoastalGuard AI Dashboard]([https://i.ibb.co/L5fN834/Screenshot-2024-05-18-at-3-11-20-PM.png](https://drive.google.com/file/d/1ZK491RJbLy2jQuZtmLQ-tRhmH6Io0eOq/preview))
+![CoastalGuard AI Dashboard]([https://drive.google.com/file/d/1ZK491RJbLy2jQuZtmLQ-tRhmH6Io0eOq/preview])
 
 ---
 
