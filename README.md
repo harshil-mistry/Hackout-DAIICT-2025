@@ -104,16 +104,11 @@ To get a local copy up and running, follow these simple steps.
     ```sh
     pip install -r requirements.txt
     ```
-3.  **Install JS packages and build CSS:**
-    ```sh
-    npm install
-    npm run build:css
-    ```
-4.  **Set up your environment variables:**
+3.  **Set up your environment variables:**
     * Create a `.env` file in the root directory.
     * Add your API keys
 
-5.  **Run the application:**
+4.  **Run the application:**
     ```sh
     python app.py
     ```
