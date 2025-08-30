@@ -7,6 +7,10 @@ import logging
 import random
 import json
 import google.generativeai as genai
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from twilio.rest import Client
 
 # Load environment variables
 load_dotenv()
@@ -27,6 +31,28 @@ print(f"SECRET_KEY from env: {os.getenv('SECRET_KEY')}")
 print(f"WEATHER_API_KEY from env: {os.getenv('WEATHER_API_KEY')}")
 print(f"GEMINI_API_KEY from env: {'Set' if GEMINI_API_KEY else 'Not set'}")
 print("=========================")
+
+# Communication Services Configuration
+TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID')
+TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN')
+TWILIO_PHONE_NUMBER = os.getenv('TWILIO_PHONE_NUMBER')
+
+# Email Configuration
+SMTP_SERVER = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
+SMTP_PORT = int(os.getenv('SMTP_PORT', 587))
+SMTP_USERNAME = os.getenv('SMTP_USERNAME')
+SMTP_PASSWORD = os.getenv('SMTP_PASSWORD')
+
+# Initialize Twilio client
+twilio_client = None
+if TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN:
+    try:
+        twilio_client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
+        print("✅ Twilio client initialized successfully")
+    except Exception as e:
+        print(f"❌ Failed to initialize Twilio client: {e}")
+else:
+    print("⚠️ Twilio credentials not found in environment variables")
 
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'coastalguard-dev-key-2025')
@@ -467,6 +493,56 @@ def get_fallback_analysis():
     }
 
 # ======================================
+# COMMUNICATION SERVICES
+# ======================================
+
+def send_email(to_email, subject, message):
+    """Send email using SMTP"""
+    try:
+        if not SMTP_USERNAME or not SMTP_PASSWORD:
+            return {"success": False, "error": "Email credentials not configured"}
+        
+        # Create message
+        msg = MIMEMultipart()
+        msg['From'] = SMTP_USERNAME
+        msg['To'] = to_email
+        msg['Subject'] = subject
+        
+        # Add body to email
+        msg.attach(MIMEText(message, 'plain'))
+        
+        # Create SMTP session
+        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+        server.starttls()  # Enable security
+        server.login(SMTP_USERNAME, SMTP_PASSWORD)
+        text = msg.as_string()
+        server.sendmail(SMTP_USERNAME, to_email, text)
+        server.quit()
+        
+        return {"success": True, "message": f"Email sent successfully to {to_email}"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+def send_sms(to_phone, message):
+    """Send SMS using Twilio"""
+    try:
+        if not twilio_client:
+            return {"success": False, "error": "Twilio client not initialized"}
+        
+        # Format phone number
+        if not to_phone.startswith('+'):
+            to_phone = '+91' + to_phone  # Default to India
+        
+        message = twilio_client.messages.create(
+            body=message,
+            from_=f'+{TWILIO_PHONE_NUMBER}',
+            to=to_phone
+        )
+        return {"success": True, "message": f"SMS sent successfully to {to_phone}", "sid": message.sid}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+# ======================================
 # FLASK ROUTES
 # ======================================
 
@@ -741,6 +817,72 @@ def get_city_weather(city_name):
     weather_data['icon_class'] = coords['icon']
     
     return jsonify(weather_data)
+
+# Communication Testing Route
+@app.route('/test-communications')
+def test_communications():
+    """Test page for email, SMS, and WhatsApp functionality"""
+    return render_template('test_communications.html')
+
+@app.route('/api/test-communications', methods=['POST'])
+def api_test_communications():
+    """API endpoint to test email and SMS"""
+    try:
+        data = request.get_json()
+        service_type = data.get('type')  # 'email' or 'sms'
+        recipient = data.get('recipient')
+        custom_message = data.get('message', '')
+        
+        if not service_type or not recipient:
+            return jsonify({"success": False, "error": "Missing required fields: type and recipient"})
+        
+        # Only allow email and SMS
+        if service_type not in ['email', 'sms']:
+            return jsonify({"success": False, "error": "Invalid service type. Only 'email' and 'sms' are supported."})
+        
+        # Create test message
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        default_message = f"""🌊 CoastalGuard AI Test Alert 🌊
+
+This is a test message from CoastalGuard AI coastal threat monitoring system.
+
+Test Details:
+- Service: {service_type.upper()}
+- Time: {timestamp}
+- Status: System operational
+
+If you received this message, the {service_type} notification system is working correctly.
+
+This is an automated test message. No action required.
+
+---
+CoastalGuard AI - Protecting Gujarat's Coast
+"""
+        
+        message = custom_message if custom_message else default_message
+        
+        result = {"success": False, "error": "Unknown service type"}
+        
+        if service_type == 'email':
+            subject = f"CoastalGuard AI Test Alert - {timestamp}"
+            result = send_email(recipient, subject, message)
+            
+        elif service_type == 'sms':
+            # Truncate message for SMS (160 character limit)
+            sms_message = f"CoastalGuard AI Test: System operational at {timestamp}. SMS notifications working correctly."
+            if custom_message:
+                sms_message = custom_message[:160]
+            result = send_sms(recipient, sms_message)
+        
+        # Add timestamp to result
+        result['timestamp'] = timestamp
+        result['service_type'] = service_type
+        result['recipient'] = recipient
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
