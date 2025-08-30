@@ -37,13 +37,13 @@ This is the feeling of **foresight and control**. It's the confidence that comes
     <td align="center"><strong>Home Page</strong></td>
   </tr>
   <tr>
-    <td><img src="https://github-production-user-asset-6210df.s3.amazonaws.com/125483347/483878751-fa3544bf-f546-43d7-a72b-94f6209212d5.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAVCODYLSA53PQK4ZA%2F20250830%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20250830T125452Z&X-Amz-Expires=300&X-Amz-Signature=d47dd2d9d8896210c692009a7d0d89684dfe5cfc9f268f33ef7a35c3ceb22855&X-Amz-SignedHeaders=host" alt="Home Page Screenshot" width="100"></td>
+    <td><img src="https://github-production-user-asset-6210df.s3.amazonaws.com/125483347/483878751-fa3544bf-f546-43d7-a72b-94f6209212d5.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAVCODYLSA53PQK4ZA%2F20250830%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20250830T125452Z&X-Amz-Expires=300&X-Amz-Signature=d47dd2d9d8896210c692009a7d0d89684dfe5cfc9f268f33ef7a35c3ceb22855&X-Amz-SignedHeaders=host" alt="Home Page Screenshot" width="100%"></td>
   </tr>
   <tr>
     <td align="center"><strong>Authority Dashboard</strong></td>
   </tr>
   <tr>
-    <td><img src="https://github-production-user-asset-6210df.s3.amazonaws.com/125483347/483878752-383c2587-b8a6-4e0e-8f38-36cd7e14fdf6.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAVCODYLSA53PQK4ZA%2F20250830%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20250830T125351Z&X-Amz-Expires=300&X-Amz-Signature=dac460e681487eaec112666f9deb12d08bd1fcfce8c696b73acdff4a242a7445&X-Amz-SignedHeaders=host" alt="Authority Dashboard" width="400"></td>
+    <td><img src="https://github-production-user-asset-6210df.s3.amazonaws.com/125483347/483878752-383c2587-b8a6-4e0e-8f38-36cd7e14fdf6.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAVCODYLSA53PQK4ZA%2F20250830%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20250830T125351Z&X-Amz-Expires=300&X-Amz-Signature=dac460e681487eaec112666f9deb12d08bd1fcfce8c696b73acdff4a242a7445&X-Amz-SignedHeaders=host" alt="Authority Dashboard" width="100%"></td>
   </tr>
 </table>
 
