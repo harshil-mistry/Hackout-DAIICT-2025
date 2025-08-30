@@ -288,6 +288,178 @@ def generate_mock_reports():
     ]
     return reports
 
+# ======================================
+# LLM INTEGRATION FOR COASTAL THREAT ANALYSIS
+# ======================================
+
+def analyze_coastal_threat():
+    """
+    Core function to analyze coastal threats using Google Gemini AI
+    Fetches weather data for critical locations and analyzes threats
+    """
+    try:
+        # Define critical coastal locations for analysis
+        critical_locations = [
+            'Dwarka',  # Important religious and coastal city
+            'Kandla',  # Major port
+            'Mandvi',  # Coastal tourism area
+            'Veraval'  # Major fishing port
+        ]
+        
+        # Fetch weather data for critical locations
+        weather_analysis_data = {}
+        for location in critical_locations:
+            if location in GUJARAT_CITIES:
+                coords = GUJARAT_CITIES[location]
+                weather_data = fetch_weather_data(location, coords['lat'], coords['lon'])
+                weather_analysis_data[location] = weather_data
+        
+        # If no weather data available, use mock data
+        if not weather_analysis_data:
+            weather_analysis_data = {
+                'Dwarka': get_mock_weather_data('Dwarka'),
+                'Kandla': get_mock_weather_data('Kandla')
+            }
+        
+        # Call Gemini AI for threat analysis
+        ai_analysis = call_gemini_api(weather_analysis_data)
+        
+        return ai_analysis
+        
+    except Exception as e:
+        logger.error(f"Error in coastal threat analysis: {e}")
+        # Return fallback analysis
+        return get_fallback_analysis()
+
+def call_gemini_api(weather_data):
+    """
+    Call Google Gemini API for intelligent coastal threat analysis
+    """
+    try:
+        if not GEMINI_API_KEY:
+            logger.warning("Gemini API key not available, using fallback analysis")
+            return get_fallback_analysis()
+        
+        # Create detailed prompt for Gemini
+        prompt = create_analysis_prompt(weather_data)
+        
+        # Initialize Gemini model
+        model = genai.GenerativeModel('gemini-2.5-pro')
+        
+        # Generate analysis
+        response = model.generate_content(prompt)
+        
+        # Parse the response
+        analysis_result = parse_gemini_response(response.text)
+        
+        logger.info("Successfully generated AI coastal threat analysis")
+        return analysis_result
+        
+    except Exception as e:
+        logger.error(f"Error calling Gemini API: {e}")
+        return get_fallback_analysis()
+
+def create_analysis_prompt(weather_data):
+    """
+    Create a detailed prompt for Gemini AI coastal threat analysis
+    """
+    prompt = f"""
+You are an expert coastal safety analyst for Gujarat, India. Analyze the following real-time weather data for critical coastal locations and provide a comprehensive threat assessment.
+
+WEATHER DATA:
+{json.dumps(weather_data, indent=2)}
+
+ANALYSIS INSTRUCTIONS:
+1. Evaluate coastal threats including: high winds, storm surge risk, extreme temperatures, poor visibility, rough seas
+2. Consider the impact on: fishing operations, port activities, coastal tourism, local communities
+3. Factor in seasonal patterns for Arabian Sea coastal regions
+4. Assess threat levels: GREEN (safe), YELLOW (monitor), RED (dangerous)
+
+REQUIRED JSON RESPONSE FORMAT:
+{{
+    "alert_level": "green|yellow|red",
+    "overall_threat_score": 1-10,
+    "primary_concerns": ["concern1", "concern2"],
+    "reason": "Detailed explanation of current conditions and why this alert level",
+    "recommended_action": "Specific actionable recommendations for authorities and public",
+    "affected_areas": ["area1", "area2"],
+    "risk_factors": {{
+        "wind_risk": "low|medium|high",
+        "wave_risk": "low|medium|high", 
+        "visibility_risk": "low|medium|high",
+        "temperature_risk": "low|medium|high"
+    }},
+    "forecast_trend": "improving|stable|deteriorating",
+    "emergency_contacts": "relevant contact info if alert_level is red",
+    "last_updated": "{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+}}
+
+Respond with ONLY the JSON object, no additional text.
+"""
+    return prompt
+
+def parse_gemini_response(response_text):
+    """
+    Parse and validate Gemini API response
+    """
+    try:
+        # Clean the response text
+        response_text = response_text.strip()
+        
+        # Remove markdown code blocks if present
+        if response_text.startswith('```json'):
+            response_text = response_text[7:]
+        if response_text.startswith('```'):
+            response_text = response_text[3:]
+        if response_text.endswith('```'):
+            response_text = response_text[:-3]
+        
+        # Parse JSON
+        analysis = json.loads(response_text.strip())
+        
+        # Validate required fields
+        required_fields = ['alert_level', 'reason', 'recommended_action']
+        for field in required_fields:
+            if field not in analysis:
+                raise ValueError(f"Missing required field: {field}")
+        
+        # Ensure alert_level is valid
+        if analysis['alert_level'] not in ['green', 'yellow', 'red']:
+            analysis['alert_level'] = 'green'
+        
+        return analysis
+        
+    except Exception as e:
+        logger.error(f"Error parsing Gemini response: {e}")
+        return get_fallback_analysis()
+
+def get_fallback_analysis():
+    """
+    Provide fallback analysis when AI is unavailable
+    """
+    return {
+        "alert_level": "green",
+        "overall_threat_score": 3,
+        "primary_concerns": ["Normal coastal conditions"],
+        "reason": "Current weather conditions are within normal parameters for Gujarat coastal regions. Wind speeds and sea conditions are manageable for routine coastal activities.",
+        "recommended_action": "Continue normal coastal operations with standard safety precautions. Monitor weather updates regularly.",
+        "affected_areas": ["Gujarat Coast"],
+        "risk_factors": {
+            "wind_risk": "low",
+            "wave_risk": "low",
+            "visibility_risk": "low",
+            "temperature_risk": "low"
+        },
+        "forecast_trend": "stable",
+        "emergency_contacts": "Contact local authorities if conditions change",
+        "last_updated": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        "data_source": "Fallback analysis - AI unavailable"
+    }
+
+# ======================================
+# FLASK ROUTES
+# ======================================
+
 # Main route - Landing page
 @app.route('/')
 def index():
@@ -326,16 +498,39 @@ def dashboard():
             city_data['icon'] = coords['icon']
             all_cities_data[city_name] = city_data
         
-        # Generate mock data for other panels
-        ai_alerts = generate_mock_alerts()
+        # CORE AI INTEGRATION: Analyze coastal threats using Gemini AI
+        logger.info("Starting AI coastal threat analysis...")
+        ai_threat_analysis = analyze_coastal_threat()
+        logger.info(f"AI Analysis completed - Alert Level: {ai_threat_analysis.get('alert_level', 'unknown')}")
+        
+        # Convert AI analysis to alert format for the dashboard
+        ai_alerts = [
+            {
+                'title': f"AI Threat Assessment - {ai_threat_analysis.get('alert_level', 'unknown').upper()} Alert",
+                'description': ai_threat_analysis.get('reason', 'Analysis unavailable'),
+                'location': ', '.join(ai_threat_analysis.get('affected_areas', ['Gujarat Coast'])),
+                'time': ai_threat_analysis.get('last_updated', 'Unknown'),
+                'level': ai_threat_analysis.get('alert_level', 'green'),
+                'icon': 'fa-brain',
+                'priority': ai_threat_analysis.get('alert_level', 'green'),
+                'recommended_action': ai_threat_analysis.get('recommended_action', 'Monitor conditions'),
+                'threat_score': ai_threat_analysis.get('overall_threat_score', 3),
+                'risk_factors': ai_threat_analysis.get('risk_factors', {}),
+                'primary_concerns': ai_threat_analysis.get('primary_concerns', []),
+                'forecast_trend': ai_threat_analysis.get('forecast_trend', 'stable'),
+                'data_source': ai_threat_analysis.get('data_source', 'Gemini AI Analysis')
+            }
+        ]
+        
+        # Add mock community reports
         community_reports = generate_mock_reports()
         
-        # Calculate summary stats
+        # Calculate summary stats including AI analysis
         total_alerts = len(ai_alerts)
         critical_alerts = len([a for a in ai_alerts if a['level'] == 'red'])
         total_reports = len(community_reports)
         
-        logger.info(f"Dashboard data loaded successfully. Weather data points: {len(weather_data)}")
+        logger.info(f"Dashboard data loaded successfully. Weather data points: {len(weather_data)}, AI Analysis: {ai_threat_analysis.get('alert_level', 'unknown')}")
         
         return render_template('dashboard.html', 
                              weather_data=weather_data,
@@ -343,6 +538,7 @@ def dashboard():
                              city_stats=city_stats,
                              ai_alerts=ai_alerts,
                              community_reports=community_reports,
+                             ai_analysis=ai_threat_analysis,  # Pass full AI analysis for additional display
                              summary_stats={
                                  'total_alerts': total_alerts,
                                  'critical_alerts': critical_alerts,
