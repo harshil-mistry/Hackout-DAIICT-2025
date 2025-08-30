@@ -5,9 +5,19 @@ import requests
 from datetime import datetime
 import logging
 import random
+import json
+import google.generativeai as genai
 
 # Load environment variables
 load_dotenv()
+
+# Configure Google Gemini AI
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
+    print(f"Gemini API configured successfully")
+else:
+    print("Warning: GEMINI_API_KEY not found in environment variables")
 
 # Debug environment loading
 print("=== ENVIRONMENT DEBUG ===")
@@ -15,6 +25,7 @@ print(f"Current working directory: {os.getcwd()}")
 print(f"Environment file exists: {os.path.exists('.env')}")
 print(f"SECRET_KEY from env: {os.getenv('SECRET_KEY')}")
 print(f"WEATHER_API_KEY from env: {os.getenv('WEATHER_API_KEY')}")
+print(f"GEMINI_API_KEY from env: {'Set' if GEMINI_API_KEY else 'Not set'}")
 print("=========================")
 
 app = Flask(__name__)
@@ -79,33 +90,6 @@ def estimate_sea_conditions(weather_data):
         return {'condition': 'Moderate', 'wave_height': '1-2m', 'safety': 'Caution'}
     else:
         return {'condition': 'Rough', 'wave_height': '2-4m', 'safety': 'Warning'}
-
-def process_forecast_data(forecast_data):
-    """Process 5-day forecast data for analytics"""
-    if not forecast_data or 'list' not in forecast_data:
-        return None
-    
-    daily_forecasts = []
-    current_date = None
-    daily_temps = []
-    
-    for item in forecast_data['list'][:15]:  # Next 5 days, 3-hour intervals
-        date = datetime.fromtimestamp(item['dt']).date()
-        if current_date != date:
-            if daily_temps:
-                daily_forecasts.append({
-                    'date': current_date.strftime('%Y-%m-%d'),
-                    'day_name': current_date.strftime('%A'),
-                    'temp_min': min(daily_temps),
-                    'temp_max': max(daily_temps),
-                    'description': item['weather'][0]['description'].title(),
-                    'icon': item['weather'][0]['icon']
-                })
-            current_date = date
-            daily_temps = []
-        daily_temps.append(item['main']['temp'])
-    
-    return daily_forecasts[:5]
 
 def fetch_weather_data(city_name, lat, lon):
     """Fetch weather data from OpenWeatherMap API"""
@@ -425,74 +409,6 @@ def api_test():
         test_results['error'] = 'API key not found in environment variables'
     
     return jsonify(test_results)
-
-# Enhanced dashboard route
-@app.route('/dashboard/enhanced')
-def dashboard_enhanced():
-    try:
-        # Test API key first
-        api_key = os.getenv('WEATHER_API_KEY')
-        logger.info(f"Enhanced Dashboard loading... API Key available: {'Yes' if api_key else 'No'}")
-        
-        # Fetch weather data for key cities
-        weather_data = {}
-        city_stats = {'total': len(GUJARAT_CITIES), 'safe': 0, 'monitor': 0, 'alert': 0}
-        
-        # Get weather for first 4 cities for main display
-        main_cities = list(GUJARAT_CITIES.items())[:4]
-        for city_name, coords in main_cities:
-            weather_data[city_name] = fetch_weather_data(city_name, coords['lat'], coords['lon'])
-            
-            # Count threat levels
-            level = weather_data[city_name]['threat_level']
-            if level == 'green':
-                city_stats['safe'] += 1
-            elif level == 'yellow':
-                city_stats['monitor'] += 1
-            elif level == 'red':
-                city_stats['alert'] += 1
-        
-        # Get all cities data for sidebar
-        all_cities_data = {}
-        for city_name, coords in GUJARAT_CITIES.items():
-            city_data = fetch_weather_data(city_name, coords['lat'], coords['lon'])
-            city_data['icon'] = coords['icon']
-            all_cities_data[city_name] = city_data
-        
-        # Generate mock data for other panels
-        ai_alerts = generate_mock_alerts()
-        community_reports = generate_mock_reports()
-        
-        # Calculate summary stats
-        summary_stats = {
-            'total_alerts': len(ai_alerts),
-            'critical_alerts': len([a for a in ai_alerts if a['level'] == 'red']),
-            'monitored_cities': len(GUJARAT_CITIES),
-            'community_reports': len(community_reports)
-        }
-        
-        logger.info(f"Enhanced Dashboard data loaded successfully. Weather data points: {len(weather_data)}")
-        
-        return render_template('dashboard_enhanced.html', 
-                             weather_data=weather_data,
-                             all_cities_data=all_cities_data,
-                             city_stats=city_stats,
-                             ai_alerts=ai_alerts,
-                             community_reports=community_reports,
-                             summary_stats=summary_stats,
-                             error=None)
-                             
-    except Exception as e:
-        logger.error(f"Enhanced Dashboard error: {e}")
-        # Return fallback data in case of errors
-        return render_template('dashboard_enhanced.html', 
-                             weather_data=None,
-                             all_cities_data=None,
-                             city_stats=None,
-                             ai_alerts=None,
-                             community_reports=None,
-                             summary_stats=None,
-                             error=str(e))
 
 # Get detailed city weather data
 @app.route('/api/city/<city_name>')

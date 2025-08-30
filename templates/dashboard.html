@@ -31,69 +31,6 @@
     </div>
 </div>
 
-<!-- Debug Information -->
-<div class="max-w-full mx-auto px-4 py-2">
-    <div class="bg-gray-100 border border-gray-300 rounded-lg p-3 mb-4">
-        <div class="flex items-center justify-between text-sm">
-            <div class="flex items-center space-x-4">
-                <span class="font-medium text-gray-700">🔧 Debug Info:</span>
-                
-                <!-- Weather Data Status -->
-                <div class="flex items-center">
-                    {% if weather_data %}
-                        <div class="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-                        <span class="text-green-700 font-medium">Real-time Weather Data</span>
-                    {% else %}
-                        <div class="w-2 h-2 bg-red-500 rounded-full mr-2"></div>
-                        <span class="text-red-700 font-medium">Static Weather Data</span>
-                    {% endif %}
-                </div>
-                
-                <!-- API Status -->
-                <div class="flex items-center">
-                    {% if all_cities_data %}
-                        <div class="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-                        <span class="text-green-700 font-medium">Dynamic Stats</span>
-                    {% else %}
-                        <div class="w-2 h-2 bg-orange-500 rounded-full mr-2"></div>
-                        <span class="text-orange-700 font-medium">Fallback Stats</span>
-                    {% endif %}
-                </div>
-                
-                <!-- Data Source -->
-                <div class="flex items-center">
-                    {% if error %}
-                        <div class="w-2 h-2 bg-red-500 rounded-full mr-2"></div>
-                        <span class="text-red-700 font-medium">API Error Mode</span>
-                    {% else %}
-                        <div class="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
-                        <span class="text-blue-700 font-medium">
-                            {% if weather_data %}Live API{% else %}Mock Data{% endif %}
-                        </span>
-                    {% endif %}
-                </div>
-            </div>
-            
-            <!-- Data Count -->
-            <div class="text-gray-600">
-                Cities: {{ all_cities_data|length if all_cities_data else 0 }} | 
-                Weather: {{ weather_data|length if weather_data else 0 }} | 
-                Alerts: {{ ai_alerts|length if ai_alerts else 0 }}
-            </div>
-        </div>
-        
-        <!-- Additional Debug Details -->
-        {% if weather_data %}
-            <div class="mt-2 text-xs text-gray-600">
-                <strong>Active Cities:</strong> 
-                {% for city in weather_data.keys() %}
-                    {{ city }}{% if not loop.last %}, {% endif %}
-                {% endfor %}
-            </div>
-        {% endif %}
-    </div>
-</div>
-
 <!-- Main Dashboard Layout with Sidebar -->
 <div class="flex max-w-full mx-auto">
     <!-- City Details Sidebar -->
