@@ -1,0 +1,581 @@
+{% extends "base.html" %}
+
+{% block title %}Red Alert Simulation - CoastalGuard AI{% endblock %}
+
+{% block extra_css %}
+<!-- Bootstrap CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<style>
+    body {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+    }
+    
+    .simulation-header {
+        background: linear-gradient(135deg, #dc3545, #b02a37);
+        color: white;
+        border-radius: 20px;
+        padding: 3rem;
+        margin-bottom: 3rem;
+        box-shadow: 0 15px 35px rgba(220, 53, 69, 0.3);
+        text-align: center;
+    }
+    
+    .scenario-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 2rem;
+        margin-bottom: 3rem;
+    }
+    
+    .scenario-card {
+        background: white;
+        border-radius: 20px;
+        padding: 2rem;
+        cursor: pointer;
+        transition: all 0.4s ease;
+        border: 3px solid transparent;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+    
+    .scenario-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 5px;
+        background: linear-gradient(90deg, #dc3545, #fd7e14, #ffc107);
+        transform: scaleX(0);
+        transition: transform 0.4s ease;
+    }
+    
+    .scenario-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        border-color: #dc3545;
+    }
+    
+    .scenario-card:hover::before {
+        transform: scaleX(1);
+    }
+    
+    .scenario-icon {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        background: linear-gradient(135deg, #dc3545, #fd7e14);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    
+    .scenario-title {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #2c3e50;
+        margin-bottom: 1rem;
+    }
+    
+    .scenario-description {
+        color: #6c757d;
+        margin-bottom: 1.5rem;
+        line-height: 1.6;
+    }
+    
+    .threat-badge {
+        background: linear-gradient(135deg, #dc3545, #b02a37);
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 25px;
+        font-weight: bold;
+        display: inline-block;
+    }
+    
+    .processing-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.8);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+    }
+    
+    .processing-content {
+        background: white;
+        padding: 3rem;
+        border-radius: 20px;
+        text-align: center;
+        max-width: 500px;
+        width: 90%;
+    }
+    
+    .spinner {
+        width: 60px;
+        height: 60px;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #dc3545;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 1rem;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    .alert-display {
+        display: none;
+        background: white;
+        border-radius: 20px;
+        padding: 3rem;
+        margin-top: 2rem;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+    }
+    
+    .alert-header {
+        background: linear-gradient(135deg, #dc3545, #b02a37);
+        color: white;
+        padding: 2rem;
+        border-radius: 15px;
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+    
+    .alert-details {
+        background: #f8f9fa;
+        border-left: 5px solid #dc3545;
+        padding: 1.5rem;
+        margin: 1rem 0;
+    }
+    
+    .reset-btn {
+        background: linear-gradient(135deg, #6c757d, #495057);
+        border: none;
+        color: white;
+        padding: 1rem 2rem;
+        border-radius: 25px;
+        font-weight: bold;
+        transition: all 0.3s ease;
+    }
+    
+    .reset-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(108, 117, 125, 0.4);
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Header -->
+    <div class="simulation-header">
+        <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+        <h1>🚨 EXTREME THREAT SIMULATION 🚨</h1>
+        <p class="lead mb-0">Select an extreme scenario to trigger RED ALERT conditions</p>
+    </div>
+
+    <!-- Scenario Selection -->
+    <div class="scenario-grid">
+        <!-- Cyclone Scenario -->
+        <div class="scenario-card" onclick="triggerScenario('cyclone')">
+            <div class="scenario-icon">
+                <i class="fas fa-hurricane"></i>
+            </div>
+            <div class="scenario-title">🌪️ SUPER CYCLONE</div>
+            <div class="scenario-description">
+                Category 5 cyclone with 180+ km/h winds approaching Gujarat coast. 
+                Storm surge up to 8 meters. Immediate evacuation required.
+            </div>
+            <div class="threat-badge">EXTREME THREAT</div>
+        </div>
+
+        <!-- Tsunami Scenario -->
+        <div class="scenario-card" onclick="triggerScenario('tsunami')">
+            <div class="scenario-icon">
+                <i class="fas fa-water"></i>
+            </div>
+            <div class="scenario-title">🌊 MEGA TSUNAMI</div>
+            <div class="scenario-description">
+                8.5 magnitude earthquake triggers massive tsunami waves. 
+                15-20 meter waves expected to hit coast in 2 hours.
+            </div>
+            <div class="threat-badge">CATASTROPHIC</div>
+        </div>
+
+        <!-- Heat Wave Scenario -->
+        <div class="scenario-card" onclick="triggerScenario('heatwave')">
+            <div class="scenario-icon">
+                <i class="fas fa-thermometer-full"></i>
+            </div>
+            <div class="scenario-title">🔥 DEADLY HEAT DOME</div>
+            <div class="scenario-description">
+                Unprecedented 52°C temperatures with heat index of 65°C. 
+                Power grid failure. Mass casualties expected.
+            </div>
+            <div class="threat-badge">LETHAL CONDITIONS</div>
+        </div>
+
+        <!-- Storm Surge Scenario -->
+        <div class="scenario-card" onclick="triggerScenario('surge')">
+            <div class="scenario-icon">
+                <i class="fas fa-waves"></i>
+            </div>
+            <div class="scenario-title">🌊 STORM SURGE BOMB</div>
+            <div class="scenario-description">
+                Extreme low pressure system causing 12-meter storm surge. 
+                200+ km/h winds. Complete coastal devastation imminent.
+            </div>
+            <div class="threat-badge">APOCALYPTIC</div>
+        </div>
+    </div>
+
+    <!-- Processing Overlay -->
+    <div class="processing-overlay" id="processingOverlay">
+        <div class="processing-content">
+            <div class="spinner"></div>
+            <h3>🧠 AI PROCESSING THREAT DATA</h3>
+            <p>Analyzing extreme conditions...</p>
+            <p id="processingStatus">Initializing threat assessment...</p>
+        </div>
+    </div>
+
+    <!-- Alert Display -->
+    <div class="alert-display" id="alertDisplay">
+        <div class="alert-header">
+            <h2 id="alertTitle">🚨 RED ALERT TRIGGERED 🚨</h2>
+            <p id="alertSubtitle">CoastalGuard AI has detected CRITICAL threat conditions</p>
+        </div>
+        
+        <div id="alertContent">
+            <!-- Dynamic content will be inserted here -->
+        </div>
+        
+        <div class="text-center mt-4">
+            <button class="reset-btn" onclick="resetSimulation()">
+                <i class="fas fa-redo"></i> Run Another Simulation
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Red Alert Simulation JavaScript -->
+<script>
+// Debug log
+console.log("🔧 Loading Red Alert Simulation JavaScript...");
+
+scenarios = {
+    cyclone: {
+        name: "Super Cyclone Devastator",
+        icon: "🌪️",
+        processingMessages: [
+            "Analyzing cyclonic wind patterns...",
+            "Calculating storm surge heights...",
+            "Assessing infrastructure damage risk...",
+            "Determining evacuation zones...",
+            "CRITICAL THREAT DETECTED!"
+        ]
+    },
+    tsunami: {
+        name: "Mega Tsunami Wave",
+        icon: "🌊",
+        processingMessages: [
+            "Processing seismic data...",
+            "Calculating wave propagation...",
+            "Estimating coastal impact zones...",
+            "Computing arrival times...",
+            "CATASTROPHIC THREAT CONFIRMED!"
+        ]
+    },
+    heatwave: {
+        name: "Deadly Heat Dome",
+        icon: "🔥",
+        processingMessages: [
+            "Analyzing temperature patterns...",
+            "Calculating heat index values...",
+            "Assessing health impact zones...",
+            "Evaluating infrastructure stress...",
+            "LETHAL CONDITIONS DETECTED!"
+        ]
+    },
+    surge: {
+        name: "Storm Surge Bomb",
+        icon: "🌊",
+        processingMessages: [
+            "Processing pressure system data...",
+            "Calculating surge heights...",
+            "Analyzing wind speeds...",
+            "Mapping inundation zones...",
+            "APOCALYPTIC THREAT IDENTIFIED!"
+        ]
+    }
+};
+
+// Global functions - accessible from onclick handlers
+window.triggerScenario = function(scenarioType) {
+    console.log("🚨 triggerScenario called with:", scenarioType);
+    const scenario = scenarios[scenarioType];
+    
+    if (!scenario) {
+        console.error("❌ Scenario not found:", scenarioType);
+        return;
+    }
+    
+    // Show processing overlay
+    const overlay = document.getElementById('processingOverlay');
+    if (overlay) {
+        overlay.style.display = 'flex';
+        console.log("✅ Processing overlay shown");
+    } else {
+        console.error("❌ Processing overlay not found");
+        return;
+    }
+    
+    // Simulate AI processing with messages
+    let messageIndex = 0;
+    const processingInterval = setInterval(() => {
+        if (messageIndex < scenario.processingMessages.length) {
+            const statusElement = document.getElementById('processingStatus');
+            if (statusElement) {
+                statusElement.textContent = scenario.processingMessages[messageIndex];
+                console.log("📝 Processing message:", scenario.processingMessages[messageIndex]);
+            }
+            messageIndex++;
+        } else {
+            clearInterval(processingInterval);
+            console.log("🧠 Starting AI processing...");
+            // Call the actual API
+            processScenarioWithAI(scenarioType);
+        }
+    }, 1000);
+};
+
+window.processScenarioWithAI = function(scenarioType) {
+    console.log("🔄 Processing scenario with AI:", scenarioType);
+    
+    // Map to our backend scenario types
+    const scenarioMapping = {
+        'cyclone': 'cyclone_approach',
+        'tsunami': 'tsunami_risk',
+        'heatwave': 'extreme_heat',
+        'surge': 'severe_weather'
+    };
+    
+    const mappedScenario = scenarioMapping[scenarioType];
+    console.log("📡 API call with scenario:", mappedScenario);
+    
+    fetch('/api/simulate-red-alert', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            scenario: mappedScenario
+        })
+    })
+    .then(response => {
+        console.log("📨 API response status:", response.status);
+        return response.json();
+    })
+    .then(data => {
+        console.log("📊 API response data:", data);
+        if (data.success) {
+            displayRedAlert(data.alert_data, scenarioType);
+        } else {
+            console.error("❌ Simulation failed:", data.error);
+            alert('Simulation failed: ' + data.error);
+            document.getElementById('processingOverlay').style.display = 'none';
+        }
+    })
+    .catch(error => {
+        console.error("❌ API error:", error);
+        alert('Error processing scenario: ' + error);
+        document.getElementById('processingOverlay').style.display = 'none';
+    });
+};
+
+window.displayRedAlert = function(alertData, scenarioType) {
+    console.log("🚨 Displaying red alert:", alertData);
+    const scenario = scenarios[scenarioType];
+    
+    // Hide processing overlay
+    const overlay = document.getElementById('processingOverlay');
+    if (overlay) {
+        overlay.style.display = 'none';
+        console.log("✅ Processing overlay hidden");
+    }
+    
+    // Update alert content
+    const titleElement = document.getElementById('alertTitle');
+    const subtitleElement = document.getElementById('alertSubtitle');
+    
+    if (titleElement && subtitleElement) {
+        titleElement.innerHTML = `🚨 ${scenario.icon} RED ALERT: ${scenario.name.toUpperCase()} 🚨`;
+        subtitleElement.textContent = 'IMMEDIATE ACTION REQUIRED - LIFE THREATENING CONDITIONS';
+        console.log("✅ Alert title and subtitle updated");
+    }
+    
+    const alertHTML = `
+        <div class="row">
+            <div class="col-md-6">
+                <div class="alert-details">
+                    <h4><i class="fas fa-exclamation-triangle text-danger"></i> THREAT ASSESSMENT</h4>
+                    <p><strong>Alert Level:</strong> <span class="badge bg-danger fs-6">CRITICAL RED</span></p>
+                    <p><strong>Threat Score:</strong> <span class="badge bg-dark fs-6">${alertData.threat_score}/10</span></p>
+                    <p><strong>Alert ID:</strong> <code>${alertData.alert_id}</code></p>
+                    <p><strong>Generated:</strong> ${alertData.timestamp}</p>
+                    <p><strong>Status:</strong> <span class="text-danger fw-bold">ACTIVE SIMULATION</span></p>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="alert-details">
+                    <h4><i class="fas fa-map-marker-alt text-danger"></i> AFFECTED AREAS</h4>
+                    <p class="fs-5 text-danger fw-bold">${alertData.affected_cities.join(', ')}</p>
+                    <p><strong>Impact Zone:</strong> All coastal areas within 50km</p>
+                    <p><strong>Population at Risk:</strong> ~2.5 million people</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="alert-details">
+            <h4><i class="fas fa-exclamation-circle text-danger"></i> SITUATION REPORT</h4>
+            <p class="fs-5">${alertData.description}</p>
+            
+            <h5 class="mt-3">Primary Concerns:</h5>
+            <ul class="list-unstyled">
+                ${alertData.primary_concerns.map(concern => 
+                    `<li><i class="fas fa-arrow-right text-danger me-2"></i>${concern}</li>`
+                ).join('')}
+            </ul>
+        </div>
+        
+        <div class="alert-details">
+            <h4><i class="fas fa-tasks text-warning"></i> EMERGENCY ACTIONS</h4>
+            <div class="row">
+                ${alertData.recommended_actions.map((action, index) => 
+                    `<div class="col-md-6 mb-2">
+                        <div class="alert alert-warning mb-2">
+                            <strong>${index + 1}.</strong> ${action}
+                        </div>
+                    </div>`
+                ).join('')}
+            </div>
+        </div>
+        
+        <div class="alert alert-info">
+            <h5><i class="fas fa-info-circle"></i> SIMULATION MODE</h5>
+            <p class="mb-2">This is a <strong>DEMONSTRATION</strong> of the CoastalGuard AI red alert system.</p>
+            <p class="mb-0">In a real emergency, this alert would:</p>
+            <ul class="mb-0">
+                <li>Automatically dispatch emergency notifications to all registered contacts</li>
+                <li>Update all monitoring dashboards with critical status</li>
+                <li>Trigger coordination with disaster management authorities</li>
+                <li>Activate emergency response protocols across the region</li>
+            </ul>
+        </div>
+    `;
+    
+    const contentElement = document.getElementById('alertContent');
+    if (contentElement) {
+        contentElement.innerHTML = alertHTML;
+        console.log("✅ Alert content updated");
+    }
+    
+    // Show alert display with animation
+    const alertDisplay = document.getElementById('alertDisplay');
+    if (alertDisplay) {
+        alertDisplay.style.display = 'block';
+        alertDisplay.style.opacity = '0';
+        
+        // Fade in animation
+        let opacity = 0;
+        const fadeIn = setInterval(() => {
+            opacity += 0.1;
+            alertDisplay.style.opacity = opacity;
+            if (opacity >= 1) {
+                clearInterval(fadeIn);
+                console.log("✅ Alert display shown with fade-in");
+            }
+        }, 50);
+        
+        // Scroll to alert
+        setTimeout(() => {
+            alertDisplay.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            console.log("✅ Scrolled to alert display");
+        }, 500);
+    }
+};
+
+window.resetSimulation = function() {
+    console.log("🔄 Resetting simulation");
+    const alertDisplay = document.getElementById('alertDisplay');
+    
+    if (!alertDisplay) {
+        console.error("❌ Alert display not found");
+        return;
+    }
+    
+    // Fade out animation
+    let opacity = 1;
+    const fadeOut = setInterval(() => {
+        opacity -= 0.1;
+        alertDisplay.style.opacity = opacity;
+        if (opacity <= 0) {
+            clearInterval(fadeOut);
+            alertDisplay.style.display = 'none';
+            alertDisplay.style.opacity = '1'; // Reset for next use
+            
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            console.log("✅ Simulation reset complete");
+        }
+    }, 50);
+};
+
+// Document ready initialization for hover effects
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("📱 DOM loaded, adding hover effects...");
+    
+    // Add hover effects to scenario cards
+    const scenarioCards = document.querySelectorAll('.scenario-card');
+    
+    scenarioCards.forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            const icon = this.querySelector('.scenario-icon i');
+            if (icon) {
+                icon.style.transform = 'scale(1.1)';
+                icon.style.transition = 'transform 0.3s ease';
+            }
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            const icon = this.querySelector('.scenario-icon i');
+            if (icon) {
+                icon.style.transform = 'scale(1)';
+            }
+        });
+    });
+    
+    console.log("✅ Hover effects added to", scenarioCards.length, "scenario cards");
+    
+    // Test function availability
+    console.log("🔧 JavaScript functions loaded:");
+    console.log("- triggerScenario:", typeof window.triggerScenario);
+    console.log("- resetSimulation:", typeof window.resetSimulation);
+    console.log("✅ Red Alert Simulation JavaScript ready!");
+});
+</script>
+{% endblock %}

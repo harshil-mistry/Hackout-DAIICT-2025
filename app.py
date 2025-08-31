@@ -347,6 +347,7 @@ def analyze_coastal_threat():
         
         # If no weather data available, use mock data
         if not weather_analysis_data:
+            print("Demo data being used")
             weather_analysis_data = {
                 'Dwarka': get_mock_weather_data('Dwarka'),
                 'Kandla': get_mock_weather_data('Kandla')
@@ -541,6 +542,155 @@ def send_sms(to_phone, message):
         return {"success": True, "message": f"SMS sent successfully to {to_phone}", "sid": message.sid}
     except Exception as e:
         return {"success": False, "error": str(e)}
+
+def generate_red_alert_simulation(scenario_type):
+    """Generate simulated red alert conditions for testing"""
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    scenarios = {
+        'severe_weather': {
+            'title': 'SEVERE WEATHER WARNING',
+            'description': 'Extremely high wind speeds (65+ km/h) with rough sea conditions detected',
+            'threat_level': 'red',
+            'threat_score': 9,
+            'affected_cities': ['Dwarka', 'Okha', 'Kandla'],
+            'weather_conditions': {
+                'wind_speed': 75,
+                'wave_height': '4-6m',
+                'visibility': 2.5,
+                'temperature': 42
+            },
+            'primary_concerns': ['Extreme wind conditions', 'Dangerous sea state', 'Poor visibility'],
+            'recommended_actions': [
+                'Suspend all fishing operations immediately',
+                'Close ports to small vessels',
+                'Issue public safety advisory',
+                'Activate emergency response teams'
+            ]
+        },
+        'cyclone_approach': {
+            'title': 'CYCLONE APPROACH ALERT',
+            'description': 'Tropical cyclone system approaching Gujarat coast within 48 hours',
+            'threat_level': 'red',
+            'threat_score': 10,
+            'affected_cities': ['Veraval', 'Porbandar', 'Dwarka', 'Jamnagar'],
+            'weather_conditions': {
+                'wind_speed': 95,
+                'wave_height': '6-8m',
+                'visibility': 1.2,
+                'pressure': 985
+            },
+            'primary_concerns': ['Cyclonic winds', 'Storm surge risk', 'Heavy rainfall', 'Infrastructure damage'],
+            'recommended_actions': [
+                'Evacuate coastal areas within 5km of shore',
+                'Close all ports and harbors',
+                'Deploy emergency shelters',
+                'Coordinate with disaster management authority'
+            ]
+        },
+        'extreme_heat': {
+            'title': 'EXTREME HEAT WARNING',
+            'description': 'Dangerous heat conditions with temperatures exceeding 45°C',
+            'threat_level': 'red',
+            'threat_score': 8,
+            'affected_cities': ['Ahmedabad', 'Rajkot', 'Bhavnagar'],
+            'weather_conditions': {
+                'temperature': 47,
+                'humidity': 85,
+                'heat_index': 52,
+                'uv_index': 11
+            },
+            'primary_concerns': ['Heat stroke risk', 'Dehydration danger', 'Infrastructure stress'],
+            'recommended_actions': [
+                'Issue heat wave advisory',
+                'Open cooling centers',
+                'Restrict outdoor activities',
+                'Monitor vulnerable populations'
+            ]
+        },
+        'tsunami_risk': {
+            'title': 'TSUNAMI RISK ALERT',
+            'description': 'Seismic activity detected - potential tsunami threat to coastal areas',
+            'threat_level': 'red',
+            'threat_score': 10,
+            'affected_cities': ['All Coastal Cities'],
+            'weather_conditions': {
+                'wave_height': 'Monitoring',
+                'sea_level': 'Rising',
+                'seismic_activity': 'Detected'
+            },
+            'primary_concerns': ['Tsunami waves', 'Coastal flooding', 'Immediate evacuation needed'],
+            'recommended_actions': [
+                'IMMEDIATE EVACUATION of coastal areas',
+                'Sound tsunami warning sirens',
+                'Move to higher ground immediately',
+                'Monitor seismic and ocean data continuously'
+            ]
+        }
+    }
+    
+    # Get scenario data or default to severe weather
+    scenario_data = scenarios.get(scenario_type, scenarios['severe_weather'])
+    
+    # Add timestamp and simulation metadata
+    scenario_data.update({
+        'timestamp': timestamp,
+        'is_simulation': True,
+        'simulation_type': scenario_type,
+        'alert_id': f"SIM_{scenario_type.upper()}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    })
+    
+    return scenario_data
+
+def generate_red_alert_message(alert_data):
+    """Generate a formatted message for red alert communications"""
+    
+    # Email message
+    email_message = f"""🚨 URGENT: RED ALERT - {alert_data['title']} 🚨
+
+CoastalGuard AI has detected a CRITICAL threat to Gujarat's coastal regions.
+
+ALERT DETAILS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔴 THREAT LEVEL: RED (Critical)
+📊 THREAT SCORE: {alert_data['threat_score']}/10
+⏰ ISSUED: {alert_data['timestamp']}
+📍 AFFECTED AREAS: {', '.join(alert_data['affected_cities'])}
+
+DESCRIPTION:
+{alert_data['description']}
+
+PRIMARY CONCERNS:
+{chr(10).join(['• ' + concern for concern in alert_data['primary_concerns']])}
+
+IMMEDIATE ACTIONS REQUIRED:
+{chr(10).join(['🔸 ' + action for action in alert_data['recommended_actions']])}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+This is an automated alert from CoastalGuard AI.
+{"🔧 SIMULATION MODE - This is a test alert" if alert_data.get('is_simulation') else ""}
+
+For emergency assistance: Call 108
+Alert ID: {alert_data['alert_id']}
+
+Stay safe and follow official guidelines.
+CoastalGuard AI - Protecting Gujarat's Coast"""
+
+    # SMS message (shorter for SMS limits)
+    sms_message = f"""🚨 RED ALERT: {alert_data['title']}
+Threat Score: {alert_data['threat_score']}/10
+Areas: {', '.join(alert_data['affected_cities'][:2])}{'...' if len(alert_data['affected_cities']) > 2 else ''}
+Action: {alert_data['recommended_actions'][0]}
+Alert ID: {alert_data['alert_id']}
+{"[SIMULATION]" if alert_data.get('is_simulation') else ""}
+Emergency: 108"""
+
+    return {
+        'email': email_message,
+        'sms': sms_message,
+        'subject': f"🚨 RED ALERT: {alert_data['title']} - {alert_data['timestamp']}"
+    }
 
 # ======================================
 # FLASK ROUTES
@@ -823,6 +973,85 @@ def get_city_weather(city_name):
 def test_communications():
     """Test page for email, SMS, and WhatsApp functionality"""
     return render_template('test_communications.html')
+
+# Red Alert Simulation Route
+@app.route('/simulate-red-alert')
+def simulate_red_alert_page():
+    """Page for simulating red alert conditions"""
+    return render_template('simulate_red_alert.html')
+
+@app.route('/api/simulate-red-alert', methods=['POST'])
+def api_simulate_red_alert():
+    """API endpoint to simulate red alert conditions"""
+    try:
+        data = request.get_json()
+        scenario_type = data.get('scenario', 'severe_weather')
+        
+        # Generate simulated red alert data based on scenario
+        simulated_data = generate_red_alert_simulation(scenario_type)
+        
+        # Generate communication messages
+        alert_messages = generate_red_alert_message(simulated_data)
+        
+        # Add messages to the response
+        simulated_data['alert_messages'] = alert_messages
+        
+        return jsonify({
+            "success": True,
+            "message": "Red alert simulation generated successfully",
+            "alert_data": simulated_data,
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        })
+        
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+@app.route('/api/test-red-alert-message', methods=['POST'])
+def api_test_red_alert_message():
+    """API endpoint to test sending red alert messages (simulation only)"""
+    try:
+        data = request.get_json()
+        alert_data = data.get('alert_data')
+        recipient_email = data.get('email')
+        recipient_phone = data.get('phone')
+        send_communications = data.get('send_communications', False)
+        
+        if not alert_data:
+            return jsonify({"success": False, "error": "Alert data is required"})
+        
+        # Generate alert messages
+        alert_messages = generate_red_alert_message(alert_data)
+        
+        results = {
+            "success": True,
+            "alert_id": alert_data.get('alert_id'),
+            "messages_generated": True,
+            "email_message": alert_messages['email'],
+            "sms_message": alert_messages['sms'],
+            "subject": alert_messages['subject']
+        }
+        
+        # Optionally send actual communications (for testing)
+        if send_communications:
+            communication_results = {}
+            
+            if recipient_email:
+                email_result = send_email(recipient_email, alert_messages['subject'], alert_messages['email'])
+                communication_results['email'] = email_result
+            
+            if recipient_phone:
+                sms_result = send_sms(recipient_phone, alert_messages['sms'])
+                communication_results['sms'] = sms_result
+            
+            results['communications_sent'] = communication_results
+        else:
+            results['communications_sent'] = False
+            results['note'] = "Messages generated but not sent. Set 'send_communications': true to actually send."
+        
+        return jsonify(results)
+        
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
 
 @app.route('/api/test-communications', methods=['POST'])
 def api_test_communications():
